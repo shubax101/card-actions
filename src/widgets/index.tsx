@@ -1,8 +1,8 @@
 import { declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
 
 async function onActivate(plugin: ReactRNPlugin) {
-  await plugin.app.registerWidget('card_actions', WidgetLocation.FlashcardAnswerButtons, {
-    dimensions: { height: '60px', width: '100%' },
+  await plugin.app.registerWidget('card_actions', WidgetLocation.FlashcardUnder, {
+    dimensions: { height: 'auto', width: '100%' },
   });
 }
 

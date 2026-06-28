@@ -7,7 +7,7 @@
   "manifestVersion": 1,
   "requestNative": false,
   "enableOnMobile": false,
-  "repoUrl": "https://github.com/yourusername/card-actions",
+  "repoUrl": "https://github.com/shubax101/card-actions",
   "requiredScopes": [
     { "type": "All", "level": "ReadCreateModifyDelete" }
   ]
