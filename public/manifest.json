@@ -1,0 +1,14 @@
+{
+  "id": "card-actions",
+  "name": "Card Actions",
+  "description": "Adds Disable and Remove buttons to the flashcard queue",
+  "author": "Max",
+  "version": { "major": 0, "minor": 0, "patch": 1 },
+  "manifestVersion": 1,
+  "requestNative": false,
+  "enableOnMobile": false,
+  "repoUrl": "https://github.com/yourusername/card-actions",
+  "requiredScopes": [
+    { "type": "All", "level": "ReadCreateModifyDelete" }
+  ]
+}
