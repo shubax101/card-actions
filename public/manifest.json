@@ -6,7 +6,7 @@
   "version": { "major": 0, "minor": 0, "patch": 1 },
   "manifestVersion": 1,
   "requestNative": false,
-  "enableOnMobile": false,
+  "enableOnMobile": true,
   "repoUrl": "https://github.com/shubax101/card-actions",
   "requiredScopes": [
     { "type": "All", "level": "ReadCreateModifyDelete" }
