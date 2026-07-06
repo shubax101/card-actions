@@ -1,4 +1,4 @@
-import { renderWidget, usePlugin } from '@remnote/plugin-sdk';
+import { renderWidget, usePlugin, useTracker } from '@remnote/plugin-sdk';
 import { useState } from 'react';
 
 interface UndoDisableData {
@@ -16,24 +16,24 @@ function CardActionsWidget() {
   const [undoDisable, setUndoDisable] = useState<UndoDisableData | null>(null);
   const [undoRemove, setUndoRemove] = useState<UndoRemoveData | null>(null);
 
+  // Reactively track current card — works on both desktop and mobile
+  const currentCard = useTracker(async (rp) => {
+    return await rp.queue.getCurrentCard();
+  });
+
   async function disableCard() {
     try {
-      const card = await plugin.queue.getCurrentCard();
-      if (!card) return;
-      const rem = await plugin.rem.findOne(card.remId);
-      if (!rem) return;
-
-      // Store undo info
+      if (!currentCard) { await plugin.app.toast('No card found'); return; }
+      const rem = await plugin.rem.findOne(currentCard.remId);
+      if (!rem) { await plugin.app.toast('Could not find rem'); return; }
       const prev = await rem.getPracticeDirection();
-      setUndoDisable({ remId: card.remId, prevDirection: prev ?? 'forward' });
+      setUndoDisable({ remId: currentCard.remId, prevDirection: prev ?? 'forward' });
       setUndoRemove(null);
-
       await rem.setPracticeDirection('none');
-      // Advance to next card
       await plugin.queue.removeCurrentCardFromQueue(false);
       await plugin.app.toast('Card disabled ✓');
     } catch (e: any) {
-      await plugin.app.toast('Error: ' + e.message);
+      await plugin.app.toast('Error disabling: ' + e.message);
     }
   }
 
@@ -52,24 +52,16 @@ function CardActionsWidget() {
 
   async function removeCard() {
     try {
-      const card = await plugin.queue.getCurrentCard();
-      if (!card) return;
-      const rem = await plugin.rem.findOne(card.remId);
-      if (!rem) return;
-
-      // Store undo info before deleting
-      setUndoRemove({
-        text: rem.text as any[],
-        parentId: rem.parent as string,
-      });
+      if (!currentCard) { await plugin.app.toast('No card found'); return; }
+      const rem = await plugin.rem.findOne(currentCard.remId);
+      if (!rem) { await plugin.app.toast('Could not find rem'); return; }
+      setUndoRemove({ text: rem.text as any[], parentId: rem.parent as string });
       setUndoDisable(null);
-
-      // Remove from queue first, then delete
       await plugin.queue.removeCurrentCardFromQueue(false);
       await rem.remove();
       await plugin.app.toast('Card removed ✓');
     } catch (e: any) {
-      await plugin.app.toast('Error: ' + e.message);
+      await plugin.app.toast('Error removing: ' + e.message);
     }
   }
 
@@ -81,14 +73,14 @@ function CardActionsWidget() {
       await newRem.setText(undoRemove.text);
       if (undoRemove.parentId) await newRem.setParent(undoRemove.parentId);
       setUndoRemove(null);
-      await plugin.app.toast('Card restored ✓ (check your notes)');
+      await plugin.app.toast('Card restored ✓');
     } catch (e: any) {
       await plugin.app.toast('Error: ' + e.message);
     }
   }
 
   const btn = (bg: string, color: string, border?: string): React.CSSProperties => ({
-    padding: '9px 0',
+    padding: '10px 0',
     borderRadius: '8px',
     border: border ?? 'none',
     cursor: 'pointer',
@@ -99,6 +91,10 @@ function CardActionsWidget() {
     flex: 1,
     minWidth: 0,
     whiteSpace: 'nowrap',
+    // Critical for mobile — removes 300ms tap delay
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
+    userSelect: 'none',
   });
 
   return (
