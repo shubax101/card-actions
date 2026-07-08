@@ -1,4 +1,4 @@
-import { renderWidget, usePlugin, useTracker } from '@remnote/plugin-sdk';
+import { renderWidget, usePlugin } from '@remnote/plugin-sdk';
 import { useState } from 'react';
 
 interface UndoDisableData {
@@ -16,18 +16,14 @@ function CardActionsWidget() {
   const [undoDisable, setUndoDisable] = useState<UndoDisableData | null>(null);
   const [undoRemove, setUndoRemove] = useState<UndoRemoveData | null>(null);
 
-  // Reactively track current card — works on both desktop and mobile
-  const currentCard = useTracker(async (rp) => {
-    return await rp.queue.getCurrentCard();
-  });
-
   async function disableCard() {
     try {
-      if (!currentCard) { await plugin.app.toast('No card found'); return; }
-      const rem = await plugin.rem.findOne(currentCard.remId);
+      const card = await plugin.queue.getCurrentCard();
+      if (!card) { await plugin.app.toast('No card found'); return; }
+      const rem = await plugin.rem.findOne(card.remId);
       if (!rem) { await plugin.app.toast('Could not find rem'); return; }
       const prev = await rem.getPracticeDirection();
-      setUndoDisable({ remId: currentCard.remId, prevDirection: prev ?? 'forward' });
+      setUndoDisable({ remId: card.remId, prevDirection: prev ?? 'forward' });
       setUndoRemove(null);
       await rem.setPracticeDirection('none');
       await plugin.queue.removeCurrentCardFromQueue(false);
@@ -52,8 +48,9 @@ function CardActionsWidget() {
 
   async function removeCard() {
     try {
-      if (!currentCard) { await plugin.app.toast('No card found'); return; }
-      const rem = await plugin.rem.findOne(currentCard.remId);
+      const card = await plugin.queue.getCurrentCard();
+      if (!card) { await plugin.app.toast('No card found'); return; }
+      const rem = await plugin.rem.findOne(card.remId);
       if (!rem) { await plugin.app.toast('Could not find rem'); return; }
       setUndoRemove({ text: rem.text as any[], parentId: rem.parent as string });
       setUndoDisable(null);
@@ -91,7 +88,6 @@ function CardActionsWidget() {
     flex: 1,
     minWidth: 0,
     whiteSpace: 'nowrap',
-    // Critical for mobile — removes 300ms tap delay
     touchAction: 'manipulation',
     WebkitTapHighlightColor: 'transparent',
     userSelect: 'none',
@@ -107,7 +103,6 @@ function CardActionsWidget() {
       width: '100%',
       boxSizing: 'border-box',
     }}>
-      {/* Disable group */}
       <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '140px' }}>
         <button onClick={disableCard} style={btn('#f59e0b', '#000')}>
           ⏸ Disable
@@ -119,7 +114,6 @@ function CardActionsWidget() {
         )}
       </div>
 
-      {/* Remove group */}
       <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '140px' }}>
         <button onClick={removeCard} style={btn('#ef4444', '#fff')}>
           🗑 Remove
