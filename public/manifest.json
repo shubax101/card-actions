@@ -3,7 +3,7 @@
   "name": "Card Actions",
   "description": "Adds Disable and Remove buttons to the flashcard queue",
   "author": "Max",
-  "version": { "major": 0, "minor": 0, "patch": 4},
+  "version": { "major": 0, "minor": 0, "patch": 5},
   "manifestVersion": 1,
   "requestNative": true,
   "enableOnMobile": true,
