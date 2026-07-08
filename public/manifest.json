@@ -3,9 +3,9 @@
   "name": "Card Actions",
   "description": "Adds Disable and Remove buttons to the flashcard queue",
   "author": "Max",
-  "version": { "major": 0, "minor": 0, "patch": 3},
+  "version": { "major": 0, "minor": 0, "patch": 4},
   "manifestVersion": 1,
-  "requestNative": false,
+  "requestNative": true,
   "enableOnMobile": true,
   "repoUrl": "https://github.com/shubax101/card-actions",
   "requiredScopes": [
