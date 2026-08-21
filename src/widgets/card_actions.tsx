@@ -6,30 +6,42 @@ interface UndoDisableData {
   prevDirection: string;
 }
 
-interface UndoRemoveData {
-  text: any[];
-  parentId: string;
-}
-
 function CardActionsWidget() {
   const plugin = usePlugin();
   const [undoDisable, setUndoDisable] = useState<UndoDisableData | null>(null);
-  const [undoRemove, setUndoRemove] = useState<UndoRemoveData | null>(null);
+  const [lastRemoved, setLastRemoved] = useState<string | null>(null);
+
+  // Gets the root question rem (in MCQ, card.remId may be a child answer rem)
+  async function getRootRem(remId: string) {
+    let rem = await plugin.rem.findOne(remId);
+    if (!rem) return null;
+    // Walk up until we find a rem that isnt just an answer option
+    // i.e. the first rem that has the MCQ powerup or is a document child
+    while (rem) {
+      const parentId = rem.parent;
+      if (!parentId) break;
+      const parent = await plugin.rem.findOne(parentId as string);
+      if (!parent) break;
+      const parentIsDoc = await parent.isDocument();
+      if (parentIsDoc) break; // parent is the folder, so rem IS the question
+      rem = parent;
+    }
+    return rem;
+  }
 
   async function disableCard() {
     try {
       const card = await plugin.queue.getCurrentCard();
       if (!card) { await plugin.app.toast('No card found'); return; }
-      const rem = await plugin.rem.findOne(card.remId);
+      const rem = await getRootRem(card.remId);
       if (!rem) { await plugin.app.toast('Could not find rem'); return; }
       const prev = await rem.getPracticeDirection();
-      setUndoDisable({ remId: card.remId, prevDirection: prev ?? 'forward' });
-      setUndoRemove(null);
+      setUndoDisable({ remId: rem._id, prevDirection: prev ?? 'forward' });
       await rem.setPracticeDirection('none');
       await plugin.queue.removeCurrentCardFromQueue(false);
       await plugin.app.toast('Card disabled ✓');
     } catch (e: any) {
-      await plugin.app.toast('Error disabling: ' + e.message);
+      await plugin.app.toast('Error: ' + e.message);
     }
   }
 
@@ -50,29 +62,23 @@ function CardActionsWidget() {
     try {
       const card = await plugin.queue.getCurrentCard();
       if (!card) { await plugin.app.toast('No card found'); return; }
-      const rem = await plugin.rem.findOne(card.remId);
+      const rem = await getRootRem(card.remId);
       if (!rem) { await plugin.app.toast('Could not find rem'); return; }
-      setUndoRemove({ text: rem.text as any[], parentId: rem.parent as string });
+
+      const remId = rem._id;
+      setLastRemoved(remId);
       setUndoDisable(null);
-      await plugin.queue.removeCurrentCardFromQueue(false);
+
+      // Remove FIRST, then advance — avoids race condition
       await rem.remove();
+
+      // Small delay to ensure deletion is registered before queue advances
+      await new Promise(r => setTimeout(r, 100));
+      await plugin.queue.removeCurrentCardFromQueue(false);
+
       await plugin.app.toast('Card removed ✓');
     } catch (e: any) {
       await plugin.app.toast('Error removing: ' + e.message);
-    }
-  }
-
-  async function undoRemoveCard() {
-    if (!undoRemove) return;
-    try {
-      const newRem = await plugin.rem.createRem();
-      if (!newRem) return;
-      await newRem.setText(undoRemove.text);
-      if (undoRemove.parentId) await newRem.setParent(undoRemove.parentId);
-      setUndoRemove(null);
-      await plugin.app.toast('Card restored ✓');
-    } catch (e: any) {
-      await plugin.app.toast('Error: ' + e.message);
     }
   }
 
@@ -118,11 +124,6 @@ function CardActionsWidget() {
         <button onClick={removeCard} style={btn('#ef4444', '#fff')}>
           🗑 Remove
         </button>
-        {undoRemove && (
-          <button onClick={undoRemoveCard} style={btn('#1f2937', '#ef4444', '1px solid #ef4444')}>
-            ↩ Undo
-          </button>
-        )}
       </div>
     </div>
   );
